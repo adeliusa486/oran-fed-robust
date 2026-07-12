@@ -24,6 +24,7 @@ from pathlib import Path
 BARCELONA_REPO = "https://github.com/vperifan/Federated-Time-Series-Forecasting.git"
 STATIONS = ("ElBorn", "LesCorts", "PobleSec")
 FIVEG_REPO = "https://github.com/uccmisl/5Gdataset.git"
+LUMOS_REPO = "https://github.com/av-troshin77/5gthroughput.git"
 
 
 def _data_root() -> Path:
@@ -61,16 +62,32 @@ def fetch_fiveg() -> None:
         print(f"5G dataset ready at {out_dir} ({n} session CSVs)")
 
 
+def fetch_lumos5g() -> None:
+    out_dir = _data_root() / "lumos5g"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory() as tmp:
+        subprocess.run(["git", "clone", "--depth", "1", LUMOS_REPO, tmp], check=True)
+        csvs = list(Path(tmp).glob("Lumos5G*.csv"))
+        if not csvs:
+            print("warning: Lumos5G CSV not found in repo", file=sys.stderr)
+            return
+        shutil.copy(csvs[0], out_dir / "Lumos5G-v1.0.csv")
+        print(f"Lumos5G dataset ready at {out_dir}")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--barcelona", action="store_true")
     ap.add_argument("--fiveg", action="store_true")
+    ap.add_argument("--lumos5g", action="store_true")
     args = ap.parse_args()
-    both = not (args.barcelona or args.fiveg)
+    both = not (args.barcelona or args.fiveg or args.lumos5g)
     if args.barcelona or both:
         fetch_barcelona()
     if args.fiveg or both:
         fetch_fiveg()
+    if args.lumos5g or both:
+        fetch_lumos5g()
 
 
 if __name__ == "__main__":

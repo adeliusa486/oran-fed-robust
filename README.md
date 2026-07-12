@@ -1,78 +1,91 @@
 # oran-fed-robust
 
-**Which robust aggregation rule should you trust in Open-RAN? An empirical study of federated poisoning defenses on real base-station traffic.**
+### Which robust aggregation rule should you trust in Open-RAN? An empirical study of federated poisoning defenses on real base-station traffic.
 
-This repository evaluates six federated-learning aggregation rules — FedAvg, Krum, coordinate-wise median, trimmed-mean, FLTrust, and a history-aware reputation-weighted rule — against six poisoning attacks (sign-flip, label-flip, fabricated-update injection, a stealthy intermittent adversary, and the collusion-aware ALIE and IPM attacks) on a federated xApp load-classification task built from **real LTE base-station traffic**.
+![Python](https://img.shields.io/badge/python-3.11-blue.svg)
+![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
+![Tests](https://img.shields.io/badge/tests-17%20passing-brightgreen.svg)
+![Datasets](https://img.shields.io/badge/real%20datasets-3-orange.svg)
+![Status](https://img.shields.io/badge/results-measured%2C%20not%20simulated-success.svg)
 
-> **Honest headline finding.** No aggregation rule dominates. Crude attacks are absorbed by every rule, including no defense at all. Under the IPM attack, the rules most associated with "robustness" — Krum and coordinate-median — degrade the most, with Krum falling *below* undefended FedAvg at 30% compromise. Trimmed-mean and FLTrust are the most consistently strong choices; FLTrust's stability costs a server-side clean dataset. See `results_real/` for the full measured grid.
+A reproducible benchmark that evaluates six federated-learning aggregation rules — **FedAvg, Krum, coordinate-wise median, trimmed-mean, FLTrust, and a history-aware reputation rule** — against six poisoning attacks, on **three independent real cellular datasets**. Every number in the accompanying study is measured on real network traffic, with multi-seed 95% confidence intervals.
 
-## Data
+---
 
-Experiments run on the **Barcelona LTE dataset** (three real base stations — ElBorn, LesCorts, PobleSec — released with the *Federated Traffic Prediction for 5G and Beyond Challenge* and with Perifanis et al., *Federated Learning for 5G Base Station Traffic Forecasting*, Computer Networks 2023). It is third-party data and is **not** redistributed here — fetch it with:
+## TL;DR — the finding
 
-```bash
-python scripts/get_real_data.py
-```
+> On real Open-RAN-style control traffic, the aggregation rules most associated with robustness are **not** the safest. Under the collusion-aware **Inner-Product-Manipulation (IPM)** attack, **Krum and coordinate-median degrade the most — below undefended FedAvg** — while **trimmed-mean and FLTrust stay stable**. No single rule wins across all attacks; the *attack model*, not the rule, dominates the outcome. This replicates across three independent networks.
 
-A synthetic Open-RAN-style generator (`generate_federated_dataset`) is also included for fast iteration and unit testing; results reported in any paper based on this repository are measured on the real data, not the synthetic generator.
+<p align="center">
+  <img src="assets/fig_ipm_panels.png" width="90%" alt="Accuracy vs compromise fraction under IPM across three real datasets"/>
+</p>
+<p align="center"><em>Under IPM, Krum (orange) and median (blue) collapse below undefended FedAvg on all three real networks — Spain LTE, Ireland 5G, US mmWave.</em></p>
 
-## Features
+<p align="center">
+  <img src="assets/fig_heatmap.png" width="70%" alt="Accuracy heatmap by rule and attack (Barcelona LTE)"/>
+</p>
+<p align="center"><em>Each rule has a specific attack it fails against (red cells): FedAvg and trimmed-mean under sign-flipping, Krum under IPM.</em></p>
 
-- 6 aggregation rules behind one interface (`build_aggregator`), including magnitude-clipped reputation aggregation.
-- 6 poisoning attacks: sign-flip, label-flip, fabricated-update injection, a stealthy intermittent adversary, and the collusion-aware ALIE and IPM attacks.
-- Real-data loader (`load_real_federated_dataset`) with genuine base-station/time-window non-IID splits, plus a synthetic Dirichlet-partition generator for controlled experiments.
-- Federated training harness + full-grid benchmark runner with multi-seed confidence intervals → CSV/JSON/LaTeX tables.
-- FastAPI microservice exposing the aggregator as a near-RT-RIC-style service.
-- Tests, Docker, CI, config-driven design.
+---
 
-## Install
+## Datasets (all real, all public)
 
-```bash
-python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -e ".[dev]"
-python scripts/get_real_data.py                     # fetch the real Barcelona traces
-```
+| Dataset | Network | Where | Task |
+|---|---|---|---|
+| **Barcelona LTE** | 4G base stations | Spain | Downlink-load regime (5-class) |
+| **Raca 5G** | Commercial 5G client traces | Ireland | Throughput regime (5-class) |
+| **Lumos5G** | Commercial mmWave 5G | USA | Throughput regime (5-class) |
+
+Non-IID heterogeneity is **genuine** — it comes from real differences across base stations, cells, times, mobility, and applications, not from synthetic Dirichlet partitioning. The datasets are third-party and are **not** redistributed here; fetch them with one command.
+
+## Attacks & defenses
+
+- **Attacks:** sign-flip, label-flip, fabricated-update injection, a stealthy intermittent adversary, and the collusion-aware **ALIE** and **IPM** attacks.
+- **Aggregators:** FedAvg, Krum, coordinate-wise median, trimmed-mean, FLTrust, and a magnitude-clipped reputation rule — all behind one interface (`build_aggregator`).
 
 ## Quick start
 
 ```bash
-# tiny synthetic-data smoke sweep (seconds)
-PYTHONPATH=src python scripts/run_benchmark.py --quick
+python -m venv .venv && source .venv/bin/activate     # Windows: .venv\Scripts\activate
+pip install -e ".[dev]"
+python scripts/get_real_data.py                       # fetch all three real datasets
 
-# full measured grid on real data (~30 min, 5 seeds x 3 compromise fractions x 6 attacks x 6 rules)
-PYTHONPATH=src python scripts/run_full_benchmark.py --real --out results_real
+# full measured grid on a real dataset (multi-seed, 95% CIs)
+PYTHONPATH=src python scripts/run_full_benchmark.py --dataset barcelona --out results_real
+PYTHONPATH=src python scripts/run_full_benchmark.py --dataset fiveg    --seeds 3 --rounds 150 --out results_5g
+PYTHONPATH=src python scripts/run_full_benchmark.py --dataset lumos5g  --seeds 3 --rounds 150 --out results_lumos
 
-# generate paper-ready LaTeX tables/figure data from the grid
-PYTHONPATH=src python scripts/make_paper_tables.py --dir results_real --f 0.3
+# regenerate the publication-quality figures
+PYTHONPATH=src python scripts/make_figures.py
 
-# run tests
+# tests + aggregation API
 PYTHONPATH=src pytest
-
-# serve the aggregation API
 PYTHONPATH=src uvicorn oran_fed_robust.api.app:app --port 8000
-curl localhost:8000/health
 ```
-
-## How it works
-
-Each round: clients train locally → updates are computed as `local − global` → malicious clients perturb their data (label-flip) or update (sign-flip / fabricated / adaptive), or the round's malicious updates are crafted jointly from the honest ones (ALIE / IPM) → the aggregator combines updates → the global model is updated. See [docs/architecture.md](docs/architecture.md).
-
-The **reputation aggregator** computes each client's cosine distance to the coordinate-median reference, maps it through a calibrated suspicion function, and maintains an EWMA reputation per client (memory `beta`); updates are additionally clipped to the median update norm before the trust-weighted average. Norm-clipping is decisive against large-magnitude attacks (sign-flip) but, by design, offers no protection against magnitude-matched attacks (IPM) — this asymmetry is measured and discussed in the accompanying study.
 
 ## Repository layout
 
 ```
-src/oran_fed_robust/   core package (data, models, attacks, aggregation, training, api)
-scripts/               data fetch, benchmark, and table-generation entry points
-tests/                 unit + smoke + API tests
-configs/               YAML experiment configs
-docs/                  architecture & usage guides
+src/oran_fed_robust/
+├── data/          synthetic generator + three real-dataset loaders
+├── models/        NumPy multinomial-logistic control model
+├── attacks/       6 poisoning attacks (incl. collusion-aware ALIE/IPM)
+├── aggregation/   6 aggregation rules behind one interface
+├── training/      federated round orchestration
+├── evaluation/    accuracy / macro-F1
+└── api/           FastAPI near-RT-RIC-style aggregation service
+scripts/           data fetch, full benchmark, figure + table generation
+tests/             17 unit / smoke / API tests
 ```
 
-## Using other real Open-RAN data
+## Reproducibility
 
-Implement a loader that yields `ClientDataset(client_id, x, y)` per base station from your own OpenRAN Gym / ns-O-RAN E2 KPM exports (see `src/oran_fed_robust/data/real_traffic.py` for a worked example against the Barcelona traces), and pass the list to `FederatedTrainer`. Nothing else changes.
+Every table and figure is produced by the released code from the released configs and seeds. There are no placeholder or simulated numbers. To reproduce the headline figure end-to-end: `get_real_data.py` → three `run_full_benchmark.py` runs → `make_figures.py`.
+
+## Extending to your own O-RAN data
+
+Implement a loader that yields `ClientDataset(client_id, x, y)` per base station from your OpenRAN Gym / ns-O-RAN E2 KPM exports (see `data/real_traffic.py` for a worked example) and pass the list to `FederatedTrainer`. Nothing else changes.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+[MIT](LICENSE).

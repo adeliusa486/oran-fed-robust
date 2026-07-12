@@ -27,6 +27,7 @@ from oran_fed_robust.aggregation import build_aggregator
 from oran_fed_robust.data import generate_federated_dataset
 from oran_fed_robust.data.real_traffic import load_real_federated_dataset
 from oran_fed_robust.data.real_5g import load_5g_federated_dataset
+from oran_fed_robust.data.real_lumos5g import load_lumos5g_federated_dataset
 from oran_fed_robust.logging_utils import get_logger
 from oran_fed_robust.training import FederatedTrainer
 
@@ -51,6 +52,8 @@ def run_single(agg_name, attack, f, alpha, seed, rounds):
         clients, test, root = load_real_federated_dataset(n_clients=50, seed=seed)
     elif DATASET == "fiveg":
         clients, test, root = load_5g_federated_dataset(n_clients=50, seed=seed)
+    elif DATASET == "lumos5g":
+        clients, test, root = load_lumos5g_federated_dataset(n_clients=50, seed=seed)
     else:
         clients, test, root = generate_federated_dataset(
             n_clients=50, n_features=20, n_classes=5, samples_per_client=400,
@@ -78,7 +81,7 @@ def ci95(xs):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--fast", action="store_true", help="small grid, fewer seeds/rounds")
-    ap.add_argument("--dataset", choices=["synthetic", "barcelona", "fiveg"],
+    ap.add_argument("--dataset", choices=["synthetic", "barcelona", "fiveg", "lumos5g"],
                     default="synthetic", help="which dataset to benchmark on")
     ap.add_argument("--real", action="store_true", help="alias for --dataset barcelona")
     ap.add_argument("--seeds", type=int, default=None, help="override number of seeds")
