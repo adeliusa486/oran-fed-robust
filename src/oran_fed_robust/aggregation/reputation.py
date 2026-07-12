@@ -57,6 +57,19 @@ class ReputationAggregator(Aggregator):
             raise ValueError("client_ids length must match number of updates")
 
         reference = np.median(updates, axis=0)  # poisoning-resistant anchor
+
+        # Magnitude defense: clip each update's norm to the median norm. Cosine
+        # reputation controls *direction*; norm-clipping removes the *magnitude*
+        # channel that lets sign-flip / fabricated updates dominate a weighted
+        # average even at low weight. Together they give both heterogeneity
+        # tolerance (soft, history-aware weighting) and Byzantine robustness.
+        norms = np.linalg.norm(updates, axis=1)
+        ref_norm = float(np.median(norms))
+        clipped = updates.copy()
+        for i in range(n):
+            if norms[i] > ref_norm and norms[i] > 0:
+                clipped[i] = updates[i] * (ref_norm / norms[i])
+
         weights = np.zeros(n)
         for i, cid in enumerate(client_ids):
             d = _cosine_distance(updates[i], reference)
@@ -68,4 +81,4 @@ class ReputationAggregator(Aggregator):
         if weights.sum() <= 0:
             return reference  # safe fallback
         weights /= weights.sum()
-        return (weights[:, None] * updates).sum(axis=0)
+        return (weights[:, None] * clipped).sum(axis=0)

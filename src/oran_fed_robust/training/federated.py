@@ -16,7 +16,8 @@ from typing import List, Optional
 import numpy as np
 
 from ..aggregation import Aggregator, AggregationContext
-from ..attacks import apply_update_attack, is_data_level_attack, poison_labels
+from ..attacks import (apply_update_attack, craft_batch_attack, is_batch_attack,
+                       is_data_level_attack, poison_labels)
 from ..data import ClientDataset
 from ..evaluation import evaluate_model
 from ..models import SoftmaxClassifier
@@ -42,6 +43,7 @@ class FederatedTrainer:
         attack_name: str = "none",
         compromise_fraction: float = 0.0,
         attack_scale: float = 5.0,
+        attack_active_prob: float = 0.4,
         participants_per_round: int = 20,
         local_epochs: int = 2,
         lr: float = 0.05,
@@ -56,6 +58,7 @@ class FederatedTrainer:
         self.n_classes = n_classes
         self.attack_name = attack_name
         self.attack_scale = attack_scale
+        self.attack_active_prob = attack_active_prob
         self.participants = min(participants_per_round, len(clients))
         self.local_epochs = local_epochs
         self.lr = lr
@@ -81,8 +84,16 @@ class FederatedTrainer:
             x, y, self.local_epochs, self.lr, self.batch_size, self.rng
         )
         update = new_params - self.global_params
+        # Batch (collusion-aware) attacks are crafted jointly in run_round.
+        if is_batch_attack(self.attack_name):
+            return update
         if client.client_id in self.malicious_ids and not is_data_level_attack(self.attack_name):
-            update = apply_update_attack(update, self.attack_name, self.attack_scale, self.rng)
+            if self.attack_name == "adaptive":
+                # intermittent: only perturb on a randomly-chosen subset of rounds
+                if self.rng.random() < self.attack_active_prob:
+                    update = apply_update_attack(update, self.attack_name, self.attack_scale, self.rng)
+            else:
+                update = apply_update_attack(update, self.attack_name, self.attack_scale, self.rng)
         return update
 
     def _server_update(self) -> np.ndarray:
@@ -98,6 +109,13 @@ class FederatedTrainer:
     def run_round(self, round_idx: int) -> RoundResult:
         ids = self.rng.choice(len(self.clients), size=self.participants, replace=False)
         updates = np.array([self._local_update(self.clients[i]) for i in ids])
+
+        mal_mask = np.array([i in self.malicious_ids for i in ids])
+        if is_batch_attack(self.attack_name) and mal_mask.any() and (~mal_mask).any():
+            mal_update = craft_batch_attack(
+                self.attack_name, updates[~mal_mask], int(mal_mask.sum()),
+                self.attack_scale, self.rng)
+            updates[mal_mask] = mal_update
 
         n_byz = sum(1 for i in ids if i in self.malicious_ids)
         ctx = AggregationContext(
