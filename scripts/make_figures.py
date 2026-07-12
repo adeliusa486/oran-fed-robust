@@ -99,10 +99,9 @@ def heatmap(d, title, stem):
     cbar.set_label("Accuracy (%)")
     ax.set_title(title)
     fig.tight_layout()
-    for ext in ("pdf", "png"):
-        out = (ROOT.parent if ext == "pdf" else ROOT) / f"{stem}.{ext}"
-        fig.savefig(out, bbox_inches="tight", dpi=200 if ext == "png" else None)
-        print("wrote", out)
+    fig.savefig(ROOT.parent / f"{stem}.pdf", bbox_inches="tight")
+    fig.savefig(ROOT / "assets" / f"{stem}.png", bbox_inches="tight", dpi=200)
+    print("wrote", ROOT.parent / f"{stem}.pdf")
     plt.close(fig)
 
 
