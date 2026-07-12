@@ -21,13 +21,20 @@ import numpy as np
 
 plt.rcParams.update({
     "font.family": "serif",
-    "font.size": 9,
-    "axes.titlesize": 9,
-    "axes.labelsize": 9,
-    "legend.fontsize": 7.5,
+    "mathtext.fontset": "cm",
+    "font.size": 10,
+    "axes.titlesize": 10,
+    "axes.labelsize": 9.5,
+    "legend.fontsize": 9,
+    "axes.linewidth": 0.8,
+    "axes.edgecolor": "#444444",
     "axes.spines.top": False,
     "axes.spines.right": False,
-    "figure.dpi": 150,
+    "xtick.direction": "in", "ytick.direction": "in",
+    "xtick.major.size": 3.5, "ytick.major.size": 3.5,
+    "xtick.major.width": 0.7, "ytick.major.width": 0.7,
+    "legend.frameon": False,
+    "figure.dpi": 200,
 })
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -37,11 +44,22 @@ LABEL = {"fedavg": "FedAvg", "krum": "Krum", "median": "Median",
 ATTACKS = ["sign_flip", "label_flip", "fabricated", "adaptive", "alie", "ipm"]
 ATT_LABEL = {"sign_flip": "Sign-flip", "label_flip": "Label-flip", "fabricated": "Fabricated",
              "adaptive": "Adaptive", "alie": "ALIE", "ipm": "IPM"}
-# Colorblind-safe (Okabe-Ito) palette.
-COLOR = {"fedavg": "#000000", "krum": "#D55E00", "median": "#0072B2",
-         "trimmed_mean": "#009E73", "fltrust": "#999999", "reputation": "#CC79A7"}
+# Colorblind-safe palette.
+COLOR = {"fedavg": "#111111", "krum": "#D55E00", "median": "#0072B2",
+         "trimmed_mean": "#117733", "fltrust": "#8C8C8C", "reputation": "#AA4499"}
 MARK = {"fedavg": "o", "krum": "^", "median": "s", "trimmed_mean": "D",
-        "fltrust": "v", "reputation": "X"}
+        "fltrust": "v", "reputation": "P"}
+
+
+def _plot(ax, x, ys, es, agg):
+    ax.plot(x, ys, marker=MARK[agg], ms=4.5, lw=1.6, color=COLOR[agg],
+            mfc=COLOR[agg], mec="white", mew=0.6, label=LABEL[agg], zorder=3)
+    ax.fill_between(x, ys - es, ys + es, color=COLOR[agg], alpha=0.10, lw=0, zorder=1)
+
+
+def _style(ax):
+    ax.grid(True, ls="-", lw=0.4, alpha=0.25, zorder=0)
+    ax.tick_params(labelsize=9)
 
 
 def load_summary(path: Path):
@@ -62,17 +80,14 @@ def ipm_panels(datasets):
     x = [0.1, 0.2, 0.3]
     for ax, (title, d) in zip(axes, datasets):
         for agg in AGGS:
-            ys = [d.get((f, "ipm", agg), (np.nan, 0))[0] for f in fracs]
-            es = [d.get((f, "ipm", agg), (np.nan, 0))[1] for f in fracs]
-            ys, es = np.array(ys), np.array(es)
-            ax.plot(x, ys, marker=MARK[agg], ms=4, lw=1.4, color=COLOR[agg],
-                    label=LABEL[agg])
-            ax.fill_between(x, ys - es, ys + es, color=COLOR[agg], alpha=0.12, lw=0)
-        ax.set_title(title)
+            ys = np.array([d.get((f, "ipm", agg), (np.nan, 0))[0] for f in fracs])
+            es = np.array([d.get((f, "ipm", agg), (np.nan, 0))[1] for f in fracs])
+            _plot(ax, x, ys, es, agg)
+        ax.set_title(title, pad=6)
         ax.set_xlabel("Compromise fraction $f$")
-        ax.set_xticks(x)
-        ax.grid(True, ls=":", lw=0.5, alpha=0.6)
-    axes[0].set_ylabel("Accuracy (\\%)" if plt.rcParams["text.usetex"] else "Accuracy (%)")
+        ax.set_xlim(0.07, 0.33); ax.set_xticks(x)
+        _style(ax)
+    axes[0].set_ylabel("Accuracy (%)")
     handles, labels = axes[0].get_legend_handles_labels()
     fig.legend(handles, labels, ncol=6, loc="upper center",
                bbox_to_anchor=(0.5, 1.06), frameon=False)
@@ -114,11 +129,10 @@ def attack_grid(d, title, stem):
         for agg in AGGS:
             ys = np.array([d.get((f, attack, agg), (np.nan, 0))[0] for f in fracs])
             es = np.array([d.get((f, attack, agg), (np.nan, 0))[1] for f in fracs])
-            ax.plot(x, ys, marker=MARK[agg], ms=3.5, lw=1.3, color=COLOR[agg], label=LABEL[agg])
-            ax.fill_between(x, ys - es, ys + es, color=COLOR[agg], alpha=0.10, lw=0)
-        ax.set_title(ATT_LABEL[attack], fontsize=9)
-        ax.set_xticks(x)
-        ax.grid(True, ls=":", lw=0.5, alpha=0.6)
+            _plot(ax, x, ys, es, agg)
+        ax.set_title(ATT_LABEL[attack])
+        ax.set_xlim(0.07, 0.33); ax.set_xticks(x)
+        _style(ax)
     for ax in axes[-1, :]:
         ax.set_xlabel("Compromise fraction $f$")
     for ax in axes[:, 0]:

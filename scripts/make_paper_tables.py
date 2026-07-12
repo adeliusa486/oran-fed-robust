@@ -54,7 +54,22 @@ def main():
             if defended:
                 worst_per_attack[a] = min(defended, key=defended.get)
 
+    # diverging blue(good)->orange(bad) cell shading around the mid of the range,
+    # matching the color-coded tables common in FL-security papers (e.g. SoK).
+    allv = [100 * d[(a, agg, f)][0] for a in attacks for agg in AGG_ORDER if (a, agg, f) in d]
+    lo, hi = min(allv), max(allv)
+    mid = 0.5 * (lo + hi)
+
+    def shade(v):
+        if hi - lo < 1e-6:
+            return ""
+        span = max(hi - mid, mid - lo)
+        inten = min(38, abs(v - mid) / span * 38) if span > 1e-6 else 0
+        colour = "MidnightBlue" if v >= mid else "BurntOrange"
+        return f"\\cellcolor{{{colour}!{inten:.0f}}}"
+
     lines = ["% methods x attacks accuracy (%) at f=" + f + ", mean over seeds.",
+             "% requires \\usepackage[table,dvipsnames]{xcolor} in the preamble.",
              "\\begin{tabular}{l" + "c" * len(attacks) + "}", "\\toprule",
              "\\textbf{Method} & " + " & ".join(ATT_LABEL[a] for a in attacks) + " \\\\",
              "\\midrule"]
@@ -64,12 +79,13 @@ def main():
             v = d.get((a, agg, f))
             if not v:
                 cells.append("--"); continue
-            s = f"{100*v[0]:.1f}"
+            acc = 100 * v[0]
+            s = f"{acc:.1f}"
             if best_per_attack.get(a) == agg:
                 s = "\\textbf{" + s + "}"
             elif worst_per_attack.get(a) == agg:
                 s = "\\underline{" + s + "}"
-            cells.append(s)
+            cells.append(shade(acc) + s)
         lines.append(f"{AGG_LABEL[agg]} & " + " & ".join(cells) + " \\\\")
     lines += ["\\bottomrule", "\\end{tabular}"]
     (out / "table_by_attack.tex").write_text("\n".join(lines), encoding="utf-8")
