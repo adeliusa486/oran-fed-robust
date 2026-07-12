@@ -1,0 +1,19 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - LOG_LEVEL=INFO
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  benchmark:
+    build: .
+    command: ["python", "scripts/run_benchmark.py", "--config", "configs/default.yaml"]
+    volumes:
+      - ./results:/app/results
+    profiles: ["batch"]

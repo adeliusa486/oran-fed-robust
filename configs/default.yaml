@@ -1,0 +1,30 @@
+# Default experiment configuration.
+# Override any subset of these keys; structure mirrors oran_fed_robust.config.Config.
+data:
+  n_clients: 50
+  n_features: 20
+  n_classes: 5
+  samples_per_client: 400
+  dirichlet_alpha: 0.1   # smaller => stronger base-station heterogeneity
+  seed: 42
+
+train:
+  rounds: 50
+  participants_per_round: 20
+  local_epochs: 2
+  lr: 0.05
+  batch_size: 64
+  seed: 42
+
+attack:
+  name: fabricated       # none | sign_flip | label_flip | fabricated
+  compromise_fraction: 0.2
+  scale: 5.0
+
+agg:
+  name: reputation       # fedavg | krum | median | trimmed_mean | fltrust | reputation
+  trim_ratio: 0.1
+  beta: 0.8
+  root_size: 100
+
+output_dir: results
