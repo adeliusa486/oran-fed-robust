@@ -26,6 +26,7 @@ from statistics import mean, stdev
 from oran_fed_robust.aggregation import build_aggregator
 from oran_fed_robust.data import generate_federated_dataset
 from oran_fed_robust.data.real_traffic import load_real_federated_dataset
+from oran_fed_robust.data.real_5g import load_5g_federated_dataset
 from oran_fed_robust.logging_utils import get_logger
 from oran_fed_robust.training import FederatedTrainer
 
@@ -42,12 +43,14 @@ ATTACKS = ["sign_flip", "label_flip", "fabricated", "adaptive", "alie", "ipm"]
 # aware ALIE (z std-devs) and IPM (epsilon) so they stay within filter tolerance.
 ATTACK_SCALE = {"alie": 1.5, "ipm": 0.5}
 
-USE_REAL = False  # set by --real
+DATASET = "synthetic"  # set by --dataset {synthetic,barcelona,fiveg}
 
 
 def run_single(agg_name, attack, f, alpha, seed, rounds):
-    if USE_REAL:
+    if DATASET == "barcelona":
         clients, test, root = load_real_federated_dataset(n_clients=50, seed=seed)
+    elif DATASET == "fiveg":
+        clients, test, root = load_5g_federated_dataset(n_clients=50, seed=seed)
     else:
         clients, test, root = generate_federated_dataset(
             n_clients=50, n_features=20, n_classes=5, samples_per_client=400,
@@ -75,18 +78,26 @@ def ci95(xs):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--fast", action="store_true", help="small grid, fewer seeds/rounds")
-    ap.add_argument("--real", action="store_true", help="use the real Barcelona LTE dataset")
+    ap.add_argument("--dataset", choices=["synthetic", "barcelona", "fiveg"],
+                    default="synthetic", help="which dataset to benchmark on")
+    ap.add_argument("--real", action="store_true", help="alias for --dataset barcelona")
+    ap.add_argument("--seeds", type=int, default=None, help="override number of seeds")
+    ap.add_argument("--rounds", type=int, default=None, help="override communication rounds")
     ap.add_argument("--out", default="results")
     args = ap.parse_args()
 
-    global USE_REAL
-    USE_REAL = args.real
+    global DATASET
+    DATASET = "barcelona" if args.real else args.dataset
 
     if args.fast:
         alphas, fracs, seeds, rounds = [0.1, 1.0], [0.2], [0, 1, 2], 100
     else:
         alphas, fracs, seeds, rounds = [0.1, 0.5, 1.0], [0.1, 0.2, 0.3], [0, 1, 2, 3, 4], 200
-    if USE_REAL:
+    if args.seeds is not None:
+        seeds = list(range(args.seeds))
+    if args.rounds is not None:
+        rounds = args.rounds
+    if DATASET != "synthetic":
         alphas = [None]  # real heterogeneity is fixed by the data, no alpha sweep
 
     out = Path(args.out)
