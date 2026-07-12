@@ -106,6 +106,61 @@ def heatmap(d, title, stem):
     plt.close(fig)
 
 
+def attack_grid(d, title, stem):
+    """2x3 grid: accuracy vs compromise fraction, one panel per attack."""
+    fig, axes = plt.subplots(2, 3, figsize=(7.2, 4.2), sharex=True)
+    fracs = ["0.1", "0.2", "0.3"]
+    x = [0.1, 0.2, 0.3]
+    for ax, attack in zip(axes.ravel(), ATTACKS):
+        for agg in AGGS:
+            ys = np.array([d.get((f, attack, agg), (np.nan, 0))[0] for f in fracs])
+            es = np.array([d.get((f, attack, agg), (np.nan, 0))[1] for f in fracs])
+            ax.plot(x, ys, marker=MARK[agg], ms=3.5, lw=1.3, color=COLOR[agg], label=LABEL[agg])
+            ax.fill_between(x, ys - es, ys + es, color=COLOR[agg], alpha=0.10, lw=0)
+        ax.set_title(ATT_LABEL[attack], fontsize=9)
+        ax.set_xticks(x)
+        ax.grid(True, ls=":", lw=0.5, alpha=0.6)
+    for ax in axes[-1, :]:
+        ax.set_xlabel("Compromise fraction $f$")
+    for ax in axes[:, 0]:
+        ax.set_ylabel("Accuracy (%)")
+    handles, labels = axes[0, 0].get_legend_handles_labels()
+    fig.legend(handles, labels, ncol=6, loc="upper center",
+               bbox_to_anchor=(0.5, 1.04), frameon=False)
+    fig.suptitle(title, y=1.10, fontsize=9)
+    fig.tight_layout(rect=(0, 0, 1, 0.94))
+    out = ROOT.parent / f"{stem}.pdf"
+    fig.savefig(out, bbox_inches="tight")
+    plt.close(fig)
+    print("wrote", out)
+
+
+def heatmap_row(datasets, stem):
+    """1xN heatmaps (methods x attacks) side by side, one per dataset."""
+    fig, axes = plt.subplots(1, len(datasets), figsize=(3.0 * len(datasets), 3.0))
+    if len(datasets) == 1:
+        axes = [axes]
+    im = None
+    for ax, (title, d) in zip(axes, datasets):
+        mat = np.array([[d.get(("0.3", a, agg), (np.nan, 0))[0] for a in ATTACKS] for agg in AGGS])
+        im = ax.imshow(mat, cmap="RdYlGn", vmin=0, vmax=90, aspect="auto")
+        ax.set_xticks(range(len(ATTACKS)), [ATT_LABEL[a] for a in ATTACKS], rotation=40, ha="right", fontsize=7)
+        ax.set_yticks(range(len(AGGS)), [LABEL[a] for a in AGGS] if ax is axes[0] else [""] * len(AGGS), fontsize=7.5)
+        for i in range(len(AGGS)):
+            for j in range(len(ATTACKS)):
+                v = mat[i, j]
+                ax.text(j, i, f"{v:.0f}", ha="center", va="center",
+                        color="black" if 25 < v < 75 else "white", fontsize=6.5)
+        ax.set_title(title, fontsize=9)
+    cbar = fig.colorbar(im, ax=axes, fraction=0.025, pad=0.02)
+    cbar.set_label("Accuracy (%)")
+    out = ROOT.parent / f"{stem}.pdf"
+    fig.savefig(out, bbox_inches="tight")
+    fig.savefig(ROOT / "assets" / f"{stem}.png", bbox_inches="tight", dpi=200)
+    plt.close(fig)
+    print("wrote", out)
+
+
 def main():
     barc = load_summary(ROOT / "results_real" / "summary.csv")
     datasets = [("Barcelona LTE", barc)]
@@ -115,6 +170,8 @@ def main():
             datasets.append((name, load_summary(p)))
     ipm_panels(datasets)
     heatmap(barc, "Barcelona LTE: accuracy by rule and attack ($f=0.3$)", "fig_heatmap")
+    attack_grid(barc, "Barcelona LTE: accuracy vs. compromise fraction, by attack", "fig_attack_grid")
+    heatmap_row(datasets, "fig_heatmap_row")
 
 
 if __name__ == "__main__":

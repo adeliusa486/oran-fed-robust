@@ -22,9 +22,9 @@ A reproducible benchmark that evaluates six federated-learning aggregation rules
 <p align="center"><em>Under IPM, Krum (orange) and median (blue) collapse below undefended FedAvg on all three real networks — Spain LTE, Ireland 5G, US mmWave.</em></p>
 
 <p align="center">
-  <img src="assets/fig_heatmap.png" width="70%" alt="Accuracy heatmap by rule and attack (Barcelona LTE)"/>
+  <img src="assets/fig_heatmap_row.png" width="100%" alt="Accuracy heatmaps by rule and attack across three real datasets"/>
 </p>
-<p align="center"><em>Each rule has a specific attack it fails against (red cells): FedAvg and trimmed-mean under sign-flipping, Krum under IPM.</em></p>
+<p align="center"><em>The same failure pattern recurs on all three real networks: FedAvg and trimmed-mean fail under sign-flipping, Krum fails under IPM (red / pale cells).</em></p>
 
 ---
 
