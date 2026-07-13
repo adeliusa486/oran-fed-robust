@@ -17,9 +17,9 @@ A reproducible benchmark that evaluates six federated-learning aggregation rules
 > On real Open-RAN-style control traffic, the aggregation rules most associated with robustness are **not** the safest. Under the collusion-aware **Inner-Product-Manipulation (IPM)** attack, **Krum and coordinate-median degrade the most — below undefended FedAvg** — while **trimmed-mean and FLTrust stay stable**. No single rule wins across all attacks; the *attack model*, not the rule, dominates the outcome. This replicates across three independent networks.
 
 <p align="center">
-  <img src="assets/fig_ipm_panels.png" width="90%" alt="Accuracy vs compromise fraction under IPM across three real datasets"/>
+  <img src="assets/fig_convergence.png" width="95%" alt="Per-round accuracy under IPM across three real datasets"/>
 </p>
-<p align="center"><em>Under IPM, Krum (orange) and median (blue) collapse below undefended FedAvg on all three real networks — Spain LTE, Ireland 5G, US mmWave.</em></p>
+<p align="center"><em>Per-round training accuracy under the IPM attack on three real networks. Krum (orange) and median (blue) degrade over rounds as the attack accumulates, drifting below the no-attack ceiling, while FedAvg and trimmed-mean hold.</em></p>
 
 <p align="center">
   <img src="assets/fig_heatmap_row.png" width="100%" alt="Accuracy heatmaps by rule and attack across three real datasets"/>

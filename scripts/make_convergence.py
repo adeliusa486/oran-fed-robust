@@ -42,35 +42,85 @@ DATASETS = [
 ATTACK, F, SCALE = "ipm", 0.3, 0.5
 
 
-def history(loader, nfeat, rounds, agg_name):
+MARK = {"fedavg": "o", "krum": "^", "median": "s", "trimmed_mean": "D",
+        "fltrust": "v", "reputation": "P"}
+
+
+def history(loader, nfeat, rounds, agg_name, attack):
     clients, test, root = loader(0)
     agg = build_aggregator(agg_name, trim_ratio=0.1, beta=0.8)
+    comp = 0.0 if attack == "none" else F
     tr = FederatedTrainer(clients, test, root, agg, n_features=nfeat, n_classes=5,
-                          attack_name=ATTACK, compromise_fraction=F, attack_scale=SCALE,
+                          attack_name=attack, compromise_fraction=comp, attack_scale=SCALE,
                           participants_per_round=20, local_epochs=2, lr=0.05,
                           batch_size=64, seed=0)
     return [r.accuracy * 100 for r in tr.fit(rounds)]
 
 
 def main():
-    fig, axes = plt.subplots(1, 3, figsize=(7.4, 2.7))
+    fig, axes = plt.subplots(1, 3, figsize=(7.6, 3.0))
     for ax, (title, loader, nfeat, rounds) in zip(axes, DATASETS):
+        me = max(6, rounds // 12)                      # marker spacing
+        ref = history(loader, nfeat, rounds, "fedavg", "none")[-1]  # no-attack ceiling
         for agg in AGGS:
-            ys = history(loader, nfeat, rounds, agg)
-            ax.plot(np.arange(1, len(ys) + 1), ys, lw=1.4, color=COLOR[agg], label=LABEL[agg])
+            ys = history(loader, nfeat, rounds, agg, ATTACK)
+            ax.plot(np.arange(1, len(ys) + 1), ys, lw=1.3, color=COLOR[agg],
+                    marker=MARK[agg], markevery=me, ms=4.5, mfc=COLOR[agg],
+                    mec="white", mew=0.5, label=LABEL[agg])
+        ax.axhline(ref, ls="--", lw=1.1, color="black", label="No-attack ceiling")
         ax.set_title(title, pad=6)
         ax.set_xlabel("Communication round")
-        ax.grid(True, ls="-", lw=0.4, alpha=0.25)
+        ax.grid(True, ls="-", lw=0.4, alpha=0.22)
         print("done", title)
     axes[0].set_ylabel("Accuracy (%)")
     handles, labels = axes[0].get_legend_handles_labels()
-    fig.legend(handles, labels, ncol=6, loc="upper center", bbox_to_anchor=(0.5, 1.08),
-               columnspacing=1.1, handletextpad=0.4)
-    fig.tight_layout(rect=(0, 0, 1, 0.92))
+    fig.legend(handles, labels, ncol=4, loc="lower center", bbox_to_anchor=(0.5, -0.13),
+               columnspacing=1.4, handletextpad=0.5)
+    fig.tight_layout()
     fig.savefig(ROOT.parent / "fig_convergence.pdf", bbox_inches="tight")
     fig.savefig(ROOT / "assets" / "fig_convergence.png", bbox_inches="tight", dpi=200)
     print("wrote fig_convergence.pdf")
 
 
+ATTACKS = ["sign_flip", "label_flip", "fabricated", "adaptive", "alie", "ipm"]
+ATT_LABEL = {"sign_flip": "Sign-flip", "label_flip": "Label-flip", "fabricated": "Fabricated",
+             "adaptive": "Adaptive", "alie": "ALIE", "ipm": "IPM"}
+ATT_SCALE = {"alie": 1.5, "ipm": 0.5}
+
+
+def per_attack():
+    """6-panel per-attack convergence on Barcelona (accuracy vs round)."""
+    global ATTACK, SCALE
+    title, loader, nfeat, rounds = DATASETS[0]
+    me = max(6, rounds // 12)
+    fig, axes = plt.subplots(2, 3, figsize=(7.6, 4.6), sharex=True)
+    ref = history(loader, nfeat, rounds, "fedavg", "none")[-1]
+    for ax, attack in zip(axes.ravel(), ATTACKS):
+        ATTACK = attack
+        SCALE = ATT_SCALE.get(attack, 5.0)
+        for agg in AGGS:
+            ys = history(loader, nfeat, rounds, agg, attack)
+            ax.plot(np.arange(1, len(ys) + 1), ys, lw=1.2, color=COLOR[agg],
+                    marker=MARK[agg], markevery=me, ms=4, mfc=COLOR[agg],
+                    mec="white", mew=0.5, label=LABEL[agg])
+        ax.axhline(ref, ls="--", lw=1.0, color="black", label="No-attack ceiling")
+        ax.set_title(ATT_LABEL[attack], pad=5)
+        ax.grid(True, ls="-", lw=0.4, alpha=0.22)
+        print("done attack", attack)
+    for ax in axes[-1, :]:
+        ax.set_xlabel("Communication round")
+    for ax in axes[:, 0]:
+        ax.set_ylabel("Accuracy (%)")
+    handles, labels = axes[0, 0].get_legend_handles_labels()
+    fig.legend(handles, labels, ncol=4, loc="lower center", bbox_to_anchor=(0.5, -0.07),
+               columnspacing=1.4, handletextpad=0.5)
+    fig.suptitle("Barcelona LTE: per-round accuracy under each attack ($f=0.3$)", y=1.0)
+    fig.tight_layout(rect=(0, 0.02, 1, 0.98))
+    fig.savefig(ROOT.parent / "fig_attack_convergence.pdf", bbox_inches="tight")
+    fig.savefig(ROOT / "assets" / "fig_attack_convergence.png", bbox_inches="tight", dpi=200)
+    print("wrote fig_attack_convergence.pdf")
+
+
 if __name__ == "__main__":
     main()
+    per_attack()
