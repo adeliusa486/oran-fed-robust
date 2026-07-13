@@ -114,27 +114,37 @@ def load_summary(path: Path):
 
 
 def ipm_panels(datasets):
-    fig, axes = plt.subplots(1, len(datasets), figsize=(7.6, 3.0), sharey=False)
+    """Grouped-bar view of accuracy vs compromise fraction under IPM, one panel
+    per dataset (bars start at 0; dashed line marks the no-attack ceiling)."""
+    fig, axes = plt.subplots(1, len(datasets), figsize=(8.4, 3.2), sharey=False)
     if len(datasets) == 1:
         axes = [axes]
     fracs = ["0.1", "0.2", "0.3"]
-    x = [0.1, 0.2, 0.3]
+    xpos = np.arange(len(fracs))
+    nb = len(AGGS)
+    width = 0.82 / nb
     for ax, (title, d) in zip(axes, datasets):
-        for agg in AGGS:
+        for k, agg in enumerate(AGGS):
             ys = np.array([d.get((f, "ipm", agg), (np.nan, 0))[0] for f in fracs])
             es = np.array([d.get((f, "ipm", agg), (np.nan, 0))[1] for f in fracs])
-            _plot(ax, x, ys, es, agg)
+            off = (k - (nb - 1) / 2.0) * width
+            ax.bar(xpos + off, ys, width, yerr=es, color=COLOR[agg],
+                   label=LABEL[agg], edgecolor="white", linewidth=0.3, zorder=3,
+                   error_kw=dict(lw=0.6, capsize=1.4, capthick=0.6, ecolor="#555555"))
         ref = _no_attack_ceiling(title)
         if ref is not None:
-            ax.axhline(ref, ls="--", lw=1.1, color="black", label="No-attack ceiling")
+            ax.axhline(ref, ls="--", lw=1.1, color="black", label="No-attack ceiling", zorder=4)
         ax.set_title(title, pad=6)
         ax.set_xlabel("Compromise fraction $f$")
-        ax.set_xlim(0.07, 0.33); ax.set_xticks(x)
-        _style(ax)
+        ax.set_xticks(xpos, fracs)
+        ax.set_ylim(0, None)
+        ax.margins(y=0.02)
+        ax.grid(True, axis="y", ls="-", lw=0.4, alpha=0.25, zorder=0)
+        ax.tick_params(labelsize=9)
     axes[0].set_ylabel("Accuracy (%)")
     handles, labels = axes[0].get_legend_handles_labels()
     fig.legend(handles, labels, ncol=4, loc="lower center",
-               bbox_to_anchor=(0.5, -0.13), frameon=False, columnspacing=1.4,
+               bbox_to_anchor=(0.5, -0.14), frameon=False, columnspacing=1.4,
                handletextpad=0.5)
     fig.tight_layout()
     out = ROOT.parent / "fig_ipm_panels.pdf"
