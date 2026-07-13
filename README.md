@@ -19,12 +19,12 @@ A reproducible benchmark that evaluates six federated-learning aggregation rules
 <p align="center">
   <img src="assets/fig_convergence.png" width="95%" alt="Per-round accuracy under IPM across three real datasets"/>
 </p>
-<p align="center"><em>Per-round training accuracy under the IPM attack on three real networks. Krum (orange) and median (blue) degrade over rounds as the attack accumulates, drifting below the no-attack ceiling, while FedAvg and trimmed-mean hold.</em></p>
+<p align="center"><em>Per-round training accuracy under the IPM attack on three real networks. Krum (amber) and median (blue) degrade over rounds as the attack accumulates, drifting below the no-attack ceiling, while FedAvg and trimmed-mean hold.</em></p>
 
 <p align="center">
   <img src="assets/fig_heatmap_row.png" width="100%" alt="Accuracy heatmaps by rule and attack across three real datasets"/>
 </p>
-<p align="center"><em>The same failure pattern recurs on all three real networks: FedAvg and trimmed-mean fail under sign-flipping, Krum fails under IPM (red / pale cells).</em></p>
+<p align="center"><em>The same failure pattern recurs on all three real networks: FedAvg and trimmed-mean fail under sign-flipping, Krum fails under IPM (dark cells = low accuracy).</em></p>
 
 ---
 

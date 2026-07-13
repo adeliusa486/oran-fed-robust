@@ -21,4 +21,4 @@ results_*/
 .DS_Store
 paper/
 *.pdf
-fig_*.png
+/fig_*.png

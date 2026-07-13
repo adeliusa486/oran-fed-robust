@@ -38,15 +38,56 @@ plt.rcParams.update({
 })
 
 ROOT = Path(__file__).resolve().parents[1]
+
+# Optional live no-attack ceiling: the same measured quantity the convergence
+# figures draw (final-round FedAvg accuracy with no attack). Imported lazily so
+# the figure script still runs when the datasets/training stack are unavailable.
+try:
+    import sys as _sys
+    _sys.path.insert(0, str(ROOT / "src"))
+    from oran_fed_robust.aggregation import build_aggregator
+    from oran_fed_robust.data.real_traffic import load_real_federated_dataset
+    from oran_fed_robust.data.real_5g import load_5g_federated_dataset
+    from oran_fed_robust.data.real_lumos5g import load_lumos5g_federated_dataset
+    from oran_fed_robust.training import FederatedTrainer
+    _CEIL_OK = True
+except Exception:  # pragma: no cover - datasets not present
+    _CEIL_OK = False
+
+_CEIL_CFG = {
+    "Barcelona LTE": (lambda s: load_real_federated_dataset(n_clients=50, seed=s), 8, 200),
+    "Raca 5G": (lambda s: load_5g_federated_dataset(n_clients=50, seed=s), 7, 150),
+    "Lumos5G mmWave": (lambda s: load_lumos5g_federated_dataset(n_clients=50, seed=s), 8, 150),
+}
+
+
+def _no_attack_ceiling(title):
+    """Measured no-attack FedAvg final accuracy for a dataset (identical to the
+    ceiling drawn in the convergence figures); None if it cannot be measured."""
+    if not _CEIL_OK or title not in _CEIL_CFG:
+        return None
+    try:
+        loader, nfeat, rounds = _CEIL_CFG[title]
+        clients, test, root = loader(0)
+        agg = build_aggregator("fedavg", trim_ratio=0.1, beta=0.8)
+        tr = FederatedTrainer(clients, test, root, agg, n_features=nfeat, n_classes=5,
+                              attack_name="none", compromise_fraction=0.0, attack_scale=0.5,
+                              participants_per_round=20, local_epochs=2, lr=0.05,
+                              batch_size=64, seed=0)
+        return [r.accuracy * 100 for r in tr.fit(rounds)][-1]
+    except Exception:  # pragma: no cover
+        return None
+
+
 AGGS = ["fedavg", "krum", "median", "trimmed_mean", "fltrust", "reputation"]
 LABEL = {"fedavg": "FedAvg", "krum": "Krum", "median": "Median",
          "trimmed_mean": "Trimmed-mean", "fltrust": "FLTrust", "reputation": "Reputation"}
 ATTACKS = ["sign_flip", "label_flip", "fabricated", "adaptive", "alie", "ipm"]
 ATT_LABEL = {"sign_flip": "Sign-flip", "label_flip": "Label-flip", "fabricated": "Fabricated",
              "adaptive": "Adaptive", "alie": "ALIE", "ipm": "IPM"}
-# Colorblind-safe palette.
-COLOR = {"fedavg": "#111111", "krum": "#D55E00", "median": "#0072B2",
-         "trimmed_mean": "#117733", "fltrust": "#8C8C8C", "reputation": "#AA4499"}
+# Professional colorblind-aware palette (no red, no green).
+COLOR = {"fedavg": "#000000", "krum": "#E69F00", "median": "#0072B2",
+         "trimmed_mean": "#8C564B", "fltrust": "#7F7F7F", "reputation": "#9467BD"}
 MARK = {"fedavg": "o", "krum": "^", "median": "s", "trimmed_mean": "D",
         "fltrust": "v", "reputation": "P"}
 
@@ -83,18 +124,22 @@ def ipm_panels(datasets):
             ys = np.array([d.get((f, "ipm", agg), (np.nan, 0))[0] for f in fracs])
             es = np.array([d.get((f, "ipm", agg), (np.nan, 0))[1] for f in fracs])
             _plot(ax, x, ys, es, agg)
+        ref = _no_attack_ceiling(title)
+        if ref is not None:
+            ax.axhline(ref, ls="--", lw=1.1, color="black", label="No-attack ceiling")
         ax.set_title(title, pad=6)
         ax.set_xlabel("Compromise fraction $f$")
         ax.set_xlim(0.07, 0.33); ax.set_xticks(x)
         _style(ax)
     axes[0].set_ylabel("Accuracy (%)")
     handles, labels = axes[0].get_legend_handles_labels()
-    fig.legend(handles, labels, ncol=6, loc="lower center",
-               bbox_to_anchor=(0.5, -0.10), frameon=False, columnspacing=1.4,
+    fig.legend(handles, labels, ncol=4, loc="lower center",
+               bbox_to_anchor=(0.5, -0.13), frameon=False, columnspacing=1.4,
                handletextpad=0.5)
-    fig.tight_layout(rect=(0, 0.06, 1, 1))
+    fig.tight_layout()
     out = ROOT.parent / "fig_ipm_panels.pdf"
     fig.savefig(out, bbox_inches="tight")
+    fig.savefig(ROOT / "assets" / "fig_ipm_panels.png", bbox_inches="tight", dpi=200)
     plt.close(fig)
     print("wrote", out)
 
@@ -103,14 +148,14 @@ def heatmap(d, title, stem):
     mat = np.array([[d.get(("0.3", a, agg), (np.nan, 0))[0] for a in ATTACKS]
                     for agg in AGGS])
     fig, ax = plt.subplots(figsize=(5.0, 3.0))
-    im = ax.imshow(mat, cmap="RdYlGn", vmin=0, vmax=90, aspect="auto")
+    im = ax.imshow(mat, cmap="cividis", vmin=0, vmax=90, aspect="auto")
     ax.set_xticks(range(len(ATTACKS)), [ATT_LABEL[a] for a in ATTACKS], rotation=30, ha="right")
     ax.set_yticks(range(len(AGGS)), [LABEL[a] for a in AGGS])
     for i in range(len(AGGS)):
         for j in range(len(ATTACKS)):
             v = mat[i, j]
             ax.text(j, i, f"{v:.0f}", ha="center", va="center",
-                    color="black" if 25 < v < 75 else "white", fontsize=7.5)
+                    color="white" if v < 42 else "black", fontsize=7.5)
     cbar = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.03)
     cbar.set_label("Accuracy (%)")
     ax.set_title(title)
@@ -157,14 +202,14 @@ def heatmap_row(datasets, stem):
     im = None
     for ax, (title, d) in zip(axes, datasets):
         mat = np.array([[d.get(("0.3", a, agg), (np.nan, 0))[0] for a in ATTACKS] for agg in AGGS])
-        im = ax.imshow(mat, cmap="RdYlGn", vmin=0, vmax=90, aspect="auto")
+        im = ax.imshow(mat, cmap="cividis", vmin=0, vmax=90, aspect="auto")
         ax.set_xticks(range(len(ATTACKS)), [ATT_LABEL[a] for a in ATTACKS], rotation=40, ha="right", fontsize=7)
         ax.set_yticks(range(len(AGGS)), [LABEL[a] for a in AGGS] if ax is axes[0] else [""] * len(AGGS), fontsize=7.5)
         for i in range(len(AGGS)):
             for j in range(len(ATTACKS)):
                 v = mat[i, j]
                 ax.text(j, i, f"{v:.0f}", ha="center", va="center",
-                        color="black" if 25 < v < 75 else "white", fontsize=6.5)
+                        color="white" if v < 42 else "black", fontsize=6.5)
         ax.set_title(title, fontsize=9)
     cbar = fig.colorbar(im, ax=axes, fraction=0.025, pad=0.02)
     cbar.set_label("Accuracy (%)")
