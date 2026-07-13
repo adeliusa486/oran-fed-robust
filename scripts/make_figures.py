@@ -73,7 +73,7 @@ def load_summary(path: Path):
 
 
 def ipm_panels(datasets):
-    fig, axes = plt.subplots(1, len(datasets), figsize=(7.2, 2.5), sharey=False)
+    fig, axes = plt.subplots(1, len(datasets), figsize=(7.6, 3.0), sharey=False)
     if len(datasets) == 1:
         axes = [axes]
     fracs = ["0.1", "0.2", "0.3"]
@@ -89,9 +89,10 @@ def ipm_panels(datasets):
         _style(ax)
     axes[0].set_ylabel("Accuracy (%)")
     handles, labels = axes[0].get_legend_handles_labels()
-    fig.legend(handles, labels, ncol=6, loc="upper center",
-               bbox_to_anchor=(0.5, 1.06), frameon=False)
-    fig.tight_layout(rect=(0, 0, 1, 0.93))
+    fig.legend(handles, labels, ncol=6, loc="lower center",
+               bbox_to_anchor=(0.5, -0.10), frameon=False, columnspacing=1.4,
+               handletextpad=0.5)
+    fig.tight_layout(rect=(0, 0.06, 1, 1))
     out = ROOT.parent / "fig_ipm_panels.pdf"
     fig.savefig(out, bbox_inches="tight")
     plt.close(fig)
