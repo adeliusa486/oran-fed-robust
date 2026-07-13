@@ -87,7 +87,7 @@ ATT_LABEL = {"sign_flip": "Sign-flip", "label_flip": "Label-flip", "fabricated":
              "adaptive": "Adaptive", "alie": "ALIE", "ipm": "IPM"}
 # Professional colorblind-aware palette (no red, no green).
 COLOR = {"fedavg": "#000000", "krum": "#E69F00", "median": "#0072B2",
-         "trimmed_mean": "#8C564B", "fltrust": "#7F7F7F", "reputation": "#9467BD"}
+         "trimmed_mean": "#56B4E9", "fltrust": "#7F7F7F", "reputation": "#9467BD"}
 MARK = {"fedavg": "o", "krum": "^", "median": "s", "trimmed_mean": "D",
         "fltrust": "v", "reputation": "P"}
 
