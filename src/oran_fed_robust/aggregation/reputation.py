@@ -37,11 +37,13 @@ def _phi(d: float) -> float:
 class ReputationAggregator(Aggregator):
     name = "reputation"
 
-    def __init__(self, beta: float = 0.8, init_reputation: float = 0.5, **_):
+    def __init__(self, beta: float = 0.8, init_reputation: float = 0.5,
+                 clip: bool = True, **_):
         if not 0.0 <= beta < 1.0:
             raise ValueError("beta must be in [0, 1)")
         self.beta = beta
         self.init_reputation = init_reputation
+        self.clip = clip  # magnitude clipping; disabled only for the ablation
         self._reputation: Dict[int, float] = {}
 
     def reputations(self) -> Dict[int, float]:
@@ -66,9 +68,10 @@ class ReputationAggregator(Aggregator):
         norms = np.linalg.norm(updates, axis=1)
         ref_norm = float(np.median(norms))
         clipped = updates.copy()
-        for i in range(n):
-            if norms[i] > ref_norm and norms[i] > 0:
-                clipped[i] = updates[i] * (ref_norm / norms[i])
+        if self.clip:
+            for i in range(n):
+                if norms[i] > ref_norm and norms[i] > 0:
+                    clipped[i] = updates[i] * (ref_norm / norms[i])
 
         weights = np.zeros(n)
         for i, cid in enumerate(client_ids):

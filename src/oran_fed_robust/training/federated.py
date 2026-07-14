@@ -49,7 +49,9 @@ class FederatedTrainer:
         lr: float = 0.05,
         batch_size: int = 64,
         seed: int = 42,
+        model_cls=SoftmaxClassifier,
     ):
+        self.model_cls = model_cls
         self.clients = clients
         self.x_test, self.y_test = test_set
         self.x_root, self.y_root = root_set
@@ -65,7 +67,7 @@ class FederatedTrainer:
         self.batch_size = batch_size
         self.rng = np.random.default_rng(seed)
 
-        self.global_model = SoftmaxClassifier(n_features, n_classes, seed=seed)
+        self.global_model = self.model_cls(n_features, n_classes, seed=seed)
         self.global_params = self.global_model.get_params()
 
         # designate malicious clients (stable across rounds)
@@ -75,7 +77,7 @@ class FederatedTrainer:
 
     # ------------------------------------------------------------------
     def _local_update(self, client: ClientDataset) -> np.ndarray:
-        model = SoftmaxClassifier(self.n_features, self.n_classes)
+        model = self.model_cls(self.n_features, self.n_classes)
         model.set_params(self.global_params)
         x, y = client.x, client.y
         if client.client_id in self.malicious_ids and is_data_level_attack(self.attack_name):
@@ -98,7 +100,7 @@ class FederatedTrainer:
 
     def _server_update(self) -> np.ndarray:
         """Trusted root update for FLTrust."""
-        model = SoftmaxClassifier(self.n_features, self.n_classes)
+        model = self.model_cls(self.n_features, self.n_classes)
         model.set_params(self.global_params)
         new_params = model.local_train(
             self.x_root, self.y_root, self.local_epochs, self.lr, self.batch_size, self.rng

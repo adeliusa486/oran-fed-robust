@@ -1,0 +1,5 @@
+attack,variant,acc_mean,acc_ci95,seeds
+sign_flip,with_clip,73.7,3.3,5
+sign_flip,no_clip,59.8,8.9,5
+ipm,with_clip,69.0,1.4,5
+ipm,no_clip,74.7,0.9,5
