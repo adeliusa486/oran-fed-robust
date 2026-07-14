@@ -77,27 +77,40 @@ def load_real_federated_dataset(
             "Run scripts/get_real_data.py first.")
 
     per_station = {b: _read_csv(ddir / f"{b}.csv") for b in BASE_STATIONS}
-    all_x = np.vstack([v[0] for v in per_station.values()])
-    all_t = np.concatenate([v[1] for v in per_station.values()])
 
-    # Global quintile bins => globally balanced classes; per-client skew is real.
-    edges = np.quantile(all_t, np.linspace(0, 1, N_CLASSES + 1)[1:-1])
+    # Disjoint train/test split FIRST, per station, so the global held-out test
+    # set shares no sample with any training client. Standardization statistics
+    # and the quintile bin edges are fit on the TRAIN pool only (no test leakage).
+    station_train = {}
+    tr_x_parts, tr_t_parts, te_x_parts, te_t_parts = [], [], [], []
+    for b, (x, t, _order) in per_station.items():
+        n = len(x)
+        perm = rng.permutation(n)
+        n_test = int(test_fraction * n)
+        te_idx = perm[:n_test]
+        tr_idx = np.sort(perm[n_test:])  # keep time order within the train shard
+        station_train[b] = (x[tr_idx], t[tr_idx])
+        tr_x_parts.append(x[tr_idx]); tr_t_parts.append(t[tr_idx])
+        te_x_parts.append(x[te_idx]); te_t_parts.append(t[te_idx])
+
+    train_x = np.vstack(tr_x_parts); train_t = np.concatenate(tr_t_parts)
+    test_x = np.vstack(te_x_parts); test_t = np.concatenate(te_t_parts)
+
+    # Quintile bins + standardization fit on TRAIN targets/features only.
+    edges = np.quantile(train_t, np.linspace(0, 1, N_CLASSES + 1)[1:-1])
     def to_class(t):
         return np.digitize(t, edges).astype(int)
+    mu, sd = train_x.mean(axis=0), train_x.std(axis=0) + 1e-8
 
-    # Global standardization (server-side normalization is realistic).
-    mu, sd = all_x.mean(axis=0), all_x.std(axis=0) + 1e-8
-
-    # Allocate clients across stations proportionally to their length.
-    total = sum(len(v[0]) for v in per_station.values())
+    # Allocate clients across stations proportionally to their (train) length;
+    # each client is a contiguous real time window of that station's train trace.
+    total = sum(len(v[0]) for v in station_train.values())
     clients: List[ClientDataset] = []
     cid = 0
-    for b, (x, t, _order) in per_station.items():
+    for b, (x, t) in station_train.items():
         k = max(1, round(n_clients * len(x) / total))
         xs = (x - mu) / sd
         ys = to_class(t)
-        # contiguous time windows => each client is one base station over a
-        # bounded real time interval (genuine non-IID across clients).
         bounds = np.linspace(0, len(x), k + 1).astype(int)
         for j in range(k):
             lo, hi = bounds[j], bounds[j + 1]
@@ -106,13 +119,12 @@ def load_real_federated_dataset(
             clients.append(ClientDataset(client_id=cid, x=xs[lo:hi], y=ys[lo:hi]))
             cid += 1
 
-    # Stratified global test + clean root set drawn from the pooled data.
-    xs_all = (all_x - mu) / sd
-    ys_all = to_class(all_t)
-    perm = rng.permutation(len(xs_all))
-    n_test = int(test_fraction * len(xs_all))
-    test_idx, rest = perm[:n_test], perm[n_test:]
-    root_idx = rest[:root_size]
+    # Disjoint global test set; clean root set drawn from TRAIN only (FLTrust).
+    xs_test = (test_x - mu) / sd
+    ys_test = to_class(test_t)
+    xs_train_all = (train_x - mu) / sd
+    ys_train_all = to_class(train_t)
+    root_idx = rng.permutation(len(xs_train_all))[:root_size]
     return (clients,
-            (xs_all[test_idx], ys_all[test_idx]),
-            (xs_all[root_idx], ys_all[root_idx]))
+            (xs_test, ys_test),
+            (xs_train_all[root_idx], ys_train_all[root_idx]))

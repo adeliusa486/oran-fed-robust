@@ -77,32 +77,36 @@ def load_lumos5g_federated_dataset(
     ddir = Path(data_dir) if data_dir else _default_data_dir()
     x, t, run = _read(ddir)
 
-    # Rank-based global quintiles => globally balanced classes; per-client skew real.
+    # Global balanced quintile labels (rank-based; tolerates mass at zero) --
+    # a fixed global class definition applied identically to every split.
     order = np.argsort(np.argsort(t))
-    y = np.floor(order / len(t) * N_CLASSES).astype(int)
-    y = np.clip(y, 0, N_CLASSES - 1)
+    y = np.clip(np.floor(order / len(t) * N_CLASSES).astype(int), 0, N_CLASSES - 1)
 
-    mu, sd = x.mean(axis=0), x.std(axis=0) + 1e-8
+    # Disjoint global test split FIRST, so no test sample appears in any client;
+    # standardization statistics are fit on TRAIN only.
+    perm = rng.permutation(len(x))
+    n_test = min(int(test_fraction * len(x)), 5000)
+    test_idx = np.sort(perm[:n_test])
+    train_mask = np.ones(len(x), dtype=bool)
+    train_mask[test_idx] = False
+    train_idx = np.where(train_mask)[0]
+    mu, sd = x[train_idx].mean(axis=0), x[train_idx].std(axis=0) + 1e-8
     xs = (x - mu) / sd
 
-    # Clients: keep real run boundaries; order by run and split into contiguous
-    # shards so each client is one or a few real measurement runs (genuine non-IID).
-    run_order = np.argsort(run, kind="stable")
-    xs, y = xs[run_order], y[run_order]
+    # Clients: keep real run boundaries; order TRAIN rows by run and split into
+    # contiguous shards so each client is one or a few real measurement runs.
+    tr = train_idx[np.argsort(run[train_idx], kind="stable")]
     clients: List[ClientDataset] = []
-    bounds = np.linspace(0, len(xs), n_clients + 1).astype(int)
+    bounds = np.linspace(0, len(tr), n_clients + 1).astype(int)
     for cid in range(n_clients):
         lo, hi = bounds[cid], bounds[cid + 1]
         if hi - lo < 10:
             continue
-        idx = np.arange(lo, hi)
-        if hi - lo > max_per_client:
+        idx = tr[lo:hi]
+        if len(idx) > max_per_client:
             idx = rng.choice(idx, size=max_per_client, replace=False)
             idx.sort()
         clients.append(ClientDataset(client_id=cid, x=xs[idx], y=y[idx]))
 
-    perm = rng.permutation(len(xs))
-    n_test = min(int(test_fraction * len(xs)), 5000)
-    test_idx, rest = perm[:n_test], perm[n_test:]
-    root_idx = rest[:root_size]
+    root_idx = train_idx[rng.permutation(len(train_idx))[:root_size]]
     return (clients, (xs[test_idx], y[test_idx]), (xs[root_idx], y[root_idx]))

@@ -35,7 +35,7 @@ LABEL = {"fedavg": "FedAvg", "krum": "Krum", "median": "Median",
 COLOR = {"fedavg": "#000000", "krum": "#E69F00", "median": "#0072B2",
          "trimmed_mean": "#56B4E9", "fltrust": "#7F7F7F", "reputation": "#9467BD"}
 DATASETS = [
-    ("Barcelona LTE", lambda s: load_real_federated_dataset(n_clients=50, seed=s), 8, 200),
+    ("Barcelona LTE", lambda s: load_real_federated_dataset(n_clients=50, seed=s), 8, 150),
     ("Raca 5G", lambda s: load_5g_federated_dataset(n_clients=50, seed=s), 7, 150),
     ("Lumos5G mmWave", lambda s: load_lumos5g_federated_dataset(n_clients=50, seed=s), 8, 150),
 ]
