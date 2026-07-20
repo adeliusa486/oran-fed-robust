@@ -23,7 +23,7 @@ from oran_fed_robust.data.real_traffic import load_real_federated_dataset
 from oran_fed_robust.training import FederatedTrainer
 
 SEEDS = [0, 1, 2, 3, 4]
-ROUNDS = 150
+ROUNDS = 200
 ATTACKS = ["sign_flip", "ipm", "none"]
 ATTACK_SCALE = {"ipm": 0.5, "sign_flip": 5.0, "none": 0.5}
 
