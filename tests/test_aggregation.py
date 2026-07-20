@@ -59,3 +59,31 @@ def test_reputation_requires_matching_ids():
         assert False, "expected ValueError"
     except ValueError:
         pass
+
+
+def test_dm_trimmed_mean_resists_direction_reversed_attack():
+    """IPM-style attack: normal magnitude, reversed direction."""
+    rng = np.random.default_rng(0)
+    n, d, n_bad = 10, 8, 3
+    honest = rng.normal(0.0, 0.1, size=(n, d)) + 1.0
+    updates = honest.copy()
+    updates[:n_bad] = -honest.mean(axis=0)  # IPM: negative mean, normal magnitude
+    out = build_aggregator("dm_trimmed_mean", direction_trim_ratio=0.3).aggregate(updates)
+    assert abs(out.mean() - 1.0) < 0.5
+
+
+def test_dm_trimmed_mean_still_resists_magnitude_attack():
+    rng = np.random.default_rng(0)
+    u = _honest_with_outliers(rng)
+    out = build_aggregator(
+        "dm_trimmed_mean", trim_ratio=0.3, direction_trim_ratio=0.3
+    ).aggregate(u)
+    assert abs(out.mean() - 1.0) < 0.5
+
+
+def test_dm_trimmed_mean_rejects_bad_ratios():
+    try:
+        build_aggregator("dm_trimmed_mean", direction_trim_ratio=0.6)
+        assert False, "expected ValueError"
+    except ValueError:
+        pass

@@ -17,7 +17,7 @@ from oran_fed_robust.aggregation import build_aggregator
 from oran_fed_robust.data.real_traffic import load_real_federated_dataset
 from oran_fed_robust.training import FederatedTrainer
 
-AGGS = ["fedavg", "krum", "median", "trimmed_mean", "fltrust", "reputation"]
+AGGS = ["fedavg", "krum", "median", "trimmed_mean", "fltrust", "reputation", "dm_trimmed_mean"]
 ATTACKS = ["sign_flip", "label_flip", "fabricated", "adaptive", "alie", "ipm", "none"]
 ATTACK_SCALE = {"alie": 1.5, "ipm": 0.5}
 SEEDS = [0, 1, 2, 3, 4]
@@ -30,7 +30,7 @@ def ci95(xs):
 def run(agg_name, attack, f, seed):
     clients, test, root = load_real_federated_dataset(n_clients=50, seed=seed)
     nf = clients[0].x.shape[1]
-    agg = build_aggregator(agg_name, trim_ratio=0.1, beta=0.8)
+    agg = build_aggregator(agg_name, trim_ratio=0.1, beta=0.8, direction_trim_ratio=0.2)
     comp = 0.0 if attack == "none" else f
     tr = FederatedTrainer(clients, test, root, agg, n_features=nf, n_classes=5,
         attack_name=attack, compromise_fraction=comp,

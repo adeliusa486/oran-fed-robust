@@ -22,9 +22,10 @@ attack:
   scale: 5.0
 
 agg:
-  name: reputation       # fedavg | krum | median | trimmed_mean | fltrust | reputation
+  name: reputation       # fedavg | krum | median | trimmed_mean | fltrust | reputation | dm_trimmed_mean
   trim_ratio: 0.1
   beta: 0.8
   root_size: 100
+  direction_trim_ratio: 0.2
 
 output_dir: results

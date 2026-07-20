@@ -8,13 +8,13 @@
 ![Datasets](https://img.shields.io/badge/real%20datasets-3-orange.svg)
 ![Status](https://img.shields.io/badge/results-measured%2C%20not%20simulated-success.svg)
 
-A reproducible benchmark that evaluates six federated-learning aggregation rules — **FedAvg, Krum, coordinate-wise median, trimmed-mean, FLTrust, and a history-aware reputation rule** — against six poisoning attacks, on **three independent real cellular datasets**. Every number in the accompanying study is measured on real network traffic, with multi-seed 95% confidence intervals.
+A reproducible benchmark that evaluates seven federated-learning aggregation rules — **FedAvg, Krum, coordinate-wise median, trimmed-mean, FLTrust, a history-aware reputation rule, and our proposed Direction-and-Magnitude Trimmed Mean (DM-TM)** — against six poisoning attacks, on **three independent real cellular datasets**. Every number in the accompanying study is measured on real network traffic, with multi-seed 95% confidence intervals.
 
 ---
 
 ## TL;DR — the finding
 
-> On real Open-RAN-style control traffic, the aggregation rules most associated with robustness are **not** the safest. Under the collusion-aware **Inner-Product-Manipulation (IPM)** attack, **Krum and coordinate-median degrade the most — below undefended FedAvg** — while **trimmed-mean and FLTrust stay stable**. No single rule wins across all attacks; the *attack model*, not the rule, dominates the outcome. This replicates across three independent networks.
+> On real Open-RAN-style control traffic, the aggregation rules most associated with robustness are **not** the safest. Under the collusion-aware **Inner-Product-Manipulation (IPM)** attack, **Krum and coordinate-median degrade the most — below undefended FedAvg** — while **trimmed-mean and FLTrust stay stable**, and our proposed **DM-TM closes the IPM gap while preserving sign-flip robustness without a clean server dataset**. No single rule wins across all attacks; the *attack model*, not the rule, dominates the outcome. This replicates across three independent networks.
 
 <p align="center">
   <img src="assets/fig_convergence.png" width="95%" alt="Per-round accuracy under IPM across three real datasets"/>
@@ -41,7 +41,7 @@ Non-IID heterogeneity is **genuine** — it comes from real differences across b
 ## Attacks & defenses
 
 - **Attacks:** sign-flip, label-flip, fabricated-update injection, a stealthy intermittent adversary, and the collusion-aware **ALIE** and **IPM** attacks.
-- **Aggregators:** FedAvg, Krum, coordinate-wise median, trimmed-mean, FLTrust, and a magnitude-clipped reputation rule — all behind one interface (`build_aggregator`).
+- **Aggregators:** FedAvg, Krum, coordinate-wise median, trimmed-mean, FLTrust, a magnitude-clipped reputation rule, and **DM-TM (Direction-and-Magnitude Trimmed Mean)** — all behind one interface (`build_aggregator`).
 
 ## Quick start
 

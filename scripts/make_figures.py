@@ -79,17 +79,17 @@ def _no_attack_ceiling(title):
         return None
 
 
-AGGS = ["fedavg", "krum", "median", "trimmed_mean", "fltrust", "reputation"]
+AGGS = ["fedavg", "krum", "median", "trimmed_mean", "fltrust", "reputation", "dm_trimmed_mean"]
 LABEL = {"fedavg": "FedAvg", "krum": "Krum", "median": "Median",
-         "trimmed_mean": "Trimmed-mean", "fltrust": "FLTrust", "reputation": "Reputation"}
+         "trimmed_mean": "Trimmed-mean", "fltrust": "FLTrust", "reputation": "Reputation", "dm_trimmed_mean": "DM-TM"}
 ATTACKS = ["sign_flip", "label_flip", "fabricated", "adaptive", "alie", "ipm"]
 ATT_LABEL = {"sign_flip": "Sign-flip", "label_flip": "Label-flip", "fabricated": "Fabricated",
              "adaptive": "Adaptive", "alie": "ALIE", "ipm": "IPM"}
 # Professional colorblind-aware palette (no red, no green).
 COLOR = {"fedavg": "#000000", "krum": "#E69F00", "median": "#0072B2",
-         "trimmed_mean": "#56B4E9", "fltrust": "#7F7F7F", "reputation": "#9467BD"}
+         "trimmed_mean": "#56B4E9", "fltrust": "#7F7F7F", "reputation": "#9467BD", "dm_trimmed_mean": "#D55E00"}
 MARK = {"fedavg": "o", "krum": "^", "median": "s", "trimmed_mean": "D",
-        "fltrust": "v", "reputation": "P"}
+        "fltrust": "v", "reputation": "P", "dm_trimmed_mean": "*"}
 
 
 def _plot(ax, x, ys, es, agg):
@@ -194,7 +194,7 @@ def attack_grid(d, title, stem):
     for ax in axes[:, 0]:
         ax.set_ylabel("Accuracy (%)")
     handles, labels = axes[0, 0].get_legend_handles_labels()
-    fig.legend(handles, labels, ncol=6, loc="upper center",
+    fig.legend(handles, labels, ncol=4, loc="upper center",
                bbox_to_anchor=(0.5, 1.04), frameon=False)
     fig.suptitle(title, y=1.10, fontsize=9)
     fig.tight_layout(rect=(0, 0, 1, 0.94))

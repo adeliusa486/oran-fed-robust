@@ -8,6 +8,7 @@ from .median import CoordinateMedian
 from .trimmed_mean import TrimmedMean
 from .fltrust import FLTrust
 from .reputation import ReputationAggregator
+from .dm_trimmed_mean import DirectionMagnitudeTrimmedMean
 
 
 def build_aggregator(name: str, **kwargs) -> Aggregator:
@@ -19,6 +20,7 @@ def build_aggregator(name: str, **kwargs) -> Aggregator:
         "trimmed_mean": TrimmedMean,
         "fltrust": FLTrust,
         "reputation": ReputationAggregator,
+        "dm_trimmed_mean": DirectionMagnitudeTrimmedMean,
     }
     if name not in registry:
         raise ValueError(f"Unknown aggregator '{name}'. Options: {sorted(registry)}")
@@ -34,5 +36,6 @@ __all__ = [
     "TrimmedMean",
     "FLTrust",
     "ReputationAggregator",
+    "DirectionMagnitudeTrimmedMean",
     "build_aggregator",
 ]

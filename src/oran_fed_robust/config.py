@@ -43,10 +43,11 @@ class AttackConfig:
 
 @dataclass
 class AggConfig:
-    name: str = "reputation"  # fedavg|krum|median|trimmed_mean|fltrust|reputation
+    name: str = "reputation"  # fedavg|krum|median|trimmed_mean|fltrust|reputation|dm_trimmed_mean
     trim_ratio: float = 0.1
     beta: float = 0.8  # reputation memory
     root_size: int = 100  # FLTrust clean root dataset size
+    direction_trim_ratio: float = 0.2
 
 
 @dataclass
@@ -85,7 +86,7 @@ def load_config(path: str | Path | None = None) -> Config:
 
 
 def list_aggregators() -> List[str]:
-    return ["fedavg", "krum", "median", "trimmed_mean", "fltrust", "reputation"]
+    return ["fedavg", "krum", "median", "trimmed_mean", "fltrust", "reputation", "dm_trimmed_mean"]
 
 
 def list_attacks() -> List[str]:

@@ -30,7 +30,7 @@ def run_single(cfg, agg_name: str, attack_name: str) -> dict:
         dirichlet_alpha=cfg.data.dirichlet_alpha,
         seed=cfg.data.seed,
     )
-    aggregator = build_aggregator(agg_name, trim_ratio=cfg.agg.trim_ratio, beta=cfg.agg.beta)
+    aggregator = build_aggregator(agg_name, trim_ratio=cfg.agg.trim_ratio, beta=cfg.agg.beta, direction_trim_ratio=cfg.agg.direction_trim_ratio)
     comp = 0.0 if attack_name == "none" else cfg.attack.compromise_fraction
     trainer = FederatedTrainer(
         clients, test_set, root_set, aggregator,

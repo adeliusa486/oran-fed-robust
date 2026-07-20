@@ -5,7 +5,7 @@
 - **Data layer:** synthetic Open-RAN-style KPM generator + Dirichlet non-IID partitioning (`data/`).
 - **Model:** NumPy multinomial logistic regression with flat-vector params (`models/softmax.py`).
 - **Attacks:** sign-flip, label-flip (data-level), fabricated-update injection (`attacks/`).
-- **Aggregation:** FedAvg, Krum, coordinate-median, trimmed-mean, FLTrust, and the proposed reputation aggregator behind one interface (`aggregation/`).
+- **Aggregation:** FedAvg, Krum, coordinate-median, trimmed-mean, FLTrust, reputation rule, and DM-TM (Direction-and-Magnitude Trimmed Mean) behind one interface (`aggregation/`).
 - **Training harness:** round orchestration, attack routing, FLTrust server update, evaluation (`training/federated.py`).
 - **Evaluation:** accuracy + macro-F1 (`evaluation/`).
 - **API:** FastAPI microservice (`/health`, `/aggregate`) exposing the aggregator with reputation auditing (`api/app.py`).

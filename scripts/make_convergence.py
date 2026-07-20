@@ -29,11 +29,11 @@ plt.rcParams.update({
 })
 
 ROOT = Path(__file__).resolve().parents[1]
-AGGS = ["fedavg", "krum", "median", "trimmed_mean", "fltrust", "reputation"]
+AGGS = ["fedavg", "krum", "median", "trimmed_mean", "fltrust", "reputation", "dm_trimmed_mean"]
 LABEL = {"fedavg": "FedAvg", "krum": "Krum", "median": "Median",
-         "trimmed_mean": "Trimmed-mean", "fltrust": "FLTrust", "reputation": "Reputation"}
+         "trimmed_mean": "Trimmed-mean", "fltrust": "FLTrust", "reputation": "Reputation", "dm_trimmed_mean": "DM-TM"}
 COLOR = {"fedavg": "#000000", "krum": "#E69F00", "median": "#0072B2",
-         "trimmed_mean": "#56B4E9", "fltrust": "#7F7F7F", "reputation": "#9467BD"}
+         "trimmed_mean": "#56B4E9", "fltrust": "#7F7F7F", "reputation": "#9467BD", "dm_trimmed_mean": "#D55E00"}
 DATASETS = [
     ("Barcelona LTE", lambda s: load_real_federated_dataset(n_clients=50, seed=s), 8, 150),
     ("Raca 5G", lambda s: load_5g_federated_dataset(n_clients=50, seed=s), 7, 150),
@@ -43,7 +43,7 @@ ATTACK, F, SCALE = "ipm", 0.3, 0.5
 
 
 MARK = {"fedavg": "o", "krum": "^", "median": "s", "trimmed_mean": "D",
-        "fltrust": "v", "reputation": "P"}
+        "fltrust": "v", "reputation": "P", "dm_trimmed_mean": "*"}
 
 
 def history(loader, nfeat, rounds, agg_name, attack):

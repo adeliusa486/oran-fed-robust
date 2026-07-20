@@ -12,10 +12,10 @@ import csv
 from collections import defaultdict
 from pathlib import Path
 
-AGG_ORDER = ["fedavg", "krum", "median", "trimmed_mean", "fltrust", "reputation"]
+AGG_ORDER = ["fedavg", "krum", "median", "trimmed_mean", "fltrust", "reputation", "dm_trimmed_mean"]
 AGG_LABEL = {"fedavg": "FedAvg", "krum": "Krum", "median": "Median",
              "trimmed_mean": "Trimmed-mean", "fltrust": "FLTrust",
-             "reputation": "Reputation"}
+             "reputation": "Reputation", "dm_trimmed_mean": "DM-TM"}
 ATT_ORDER = ["sign_flip", "label_flip", "fabricated", "adaptive", "alie", "ipm"]
 ATT_LABEL = {"sign_flip": "Sign-flip", "label_flip": "Label-flip",
              "fabricated": "Fabricated", "adaptive": "Adaptive",
